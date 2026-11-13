@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel admina – Baza Wiedzy</title>
+<meta name="theme-color" content="#0d1017">
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div id="gate" class="gate">
+  <div class="window gate-card">
+    <div class="titlebar"><i></i><i></i><i></i><span>login</span></div>
+    <div class="gate-body">
+      <div class="gate-logo">🧯</div>
+      <h2>Panel admina</h2>
+      <p>Baza Wiedzy – dostęp tylko dla administratora</p>
+      <div id="gateError"></div>
+      <div class="field"><label>Login</label><input id="gateUser" type="text" autocomplete="username" placeholder="login"></div>
+      <div class="field"><label>Hasło</label><input id="gatePass" type="password" autocomplete="current-password" placeholder="hasło"></div>
+      <button class="btn btn-primary btn-full" id="gateSubmit">Zaloguj</button>
+      <div class="gate-hint">Logujesz się do panelu na VPS. Dostęp do uploadu i zarządzania jest chroniony hasłem administratora.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<main id="panel" hidden>
+  <div class="head">
+    <h1>Panel admina</h1>
+    <p>Baza Wiedzy – zarządzaj plikami i kategoriami służb ratunkowych</p>
+  </div>
+
+  <div class="top-actions">
+    <span class="user-pill" id="adminName">admin</span>
+    <button class="btn" id="btnPass">Zmień hasło</button>
+    <button class="btn btn-outline-danger" id="btnLogout">Wyloguj</button>
+  </div>
+
+  <div class="window">
+    <div class="titlebar"><i></i><i></i><i></i><span>statystyki</span></div>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+  <div class="window">
+    <div class="titlebar"><i></i><i></i><i></i><span>wyślij plik</span></div>
+    <div class="panel-body">
+      <div class="dropzone" id="dropzone">
+        <span class="dz-ico">⬆️</span>
+        Przeciągnij plik tutaj lub kliknij, aby wybrać
+        <span class="dz-name" id="dzName"></span>
+        <input type="file" id="fileInput" hidden>
+      </div>
+      <div class="field"><label>Kategoria</label><select id="upCat"></select></div>
+      <div class="field"><label>Tytuł</label><input id="upTitle" type="text" placeholder="np. Rozkaz 01/2025"></div>
+      <div class="field"><label>Opis (opcjonalnie)</label><textarea id="upDesc" placeholder="Krótki opis pliku"></textarea></div>
+      <div id="upError"></div>
+      <button class="btn btn-primary btn-full" id="upSubmit">Wyślij plik</button>
+    </div>
+  </div>
+
+  <div class="window">
+    <div class="titlebar"><i></i><i></i><i></i><span>kategorie</span></div>
+    <div class="panel-body">
+      <div class="cat-list" id="catList"></div>
+      <div class="add-cat">
+        <div class="add-label">Dodaj kategorię</div>
+        <div id="catAddError"></div>
+        <div class="field-row">
+          <div class="field"><label>Nazwa</label><input id="catName" type="text" placeholder="np. Ratownictwo wodne"></div>
+          <div class="field"><label>Ikona (emoji)</label><input id="catIcon" type="text" maxlength="4" value="📦"></div>
+        </div>
+        <div class="field"><label>Kolor</label><input id="catColor" type="text" maxlength="9" value="#8b9bff" placeholder="#8b9bff"></div>
+        <button class="btn btn-primary btn-full" id="catAdd">Dodaj kategorię</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="window">
+    <div class="titlebar"><i></i><i></i><i></i><span>pliki <span class="muted" id="filesCount"></span></span></div>
+    <div class="controls">
+      <input type="search" id="searchInput" placeholder="Szukaj plików..." aria-label="Szukaj">
+      <select id="filterCat"><option value="all">Wszystkie kategorie</option></select>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Plik</th><th>Kategoria</th><th>Rozmiar</th><th>Data</th><th>Akcje</th></tr></thead>
+        <tbody id="filesBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyState" hidden></div>
+  </div>
+
+  <div class="window">
+    <div class="titlebar"><i></i><i></i><i></i><span>ustawienia</span></div>
+    <div class="panel-body">
+      <label class="switch-row">
+        <span><b>Wymagaj logowania do przeglądania</b><span class="hint">Gdy włączone, lista i pobieranie plików wymaga zalogowania – wpływa też na stronę publiczną.</span></span>
+        <input type="checkbox" id="cfgRequireView">
+      </label>
+    </div>
+  </div>
+</main>
+
+<div id="overlay"></div>
+<div id="modalBox" role="dialog" aria-modal="true">
+  <div class="titlebar"><i></i><i></i><i></i><span id="modalLabel">okno</span><button class="modal-close" id="modalClose" type="button">×</button></div>
+  <div class="modal-body" id="modalContent"></div>
+  <div class="modal-foot" id="modalFoot"></div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+<footer>Panel admina · Baza Wiedzy</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

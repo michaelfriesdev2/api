@@ -1,0 +1,19 @@
+# zależności Node
+node_modules/
+api/node_modules/
+
+# dane i pliki użytkowników – NIE wrzucaj na GitHub
+api/data/
+api/uploads/
+
+# logi
+*.log
+npm-debug.log*
+
+# system
+.DS_Store
+Thumbs.db
+
+# env z hasłami
+.env
+*.env
