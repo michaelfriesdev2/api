@@ -216,11 +216,11 @@ app.post('/api/auth/password', authMiddleware, async (req, res) => {
 // ---- categories ----
 app.get('/api/categories', softAuth, viewGuard, (req, res) => res.json({ categories: db.categories, uncategorizedCount: db.files.filter(f => !f.category).length }));
 app.post('/api/categories', authMiddleware, (req, res) => {
-  const { name, icon, color } = req.body || {};
+  const { name, icon, color, iconUrl } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Podaj nazwę kategorii.' });
   let slug = slugify(name);
   if (db.categories.some(c => c.slug === slug)) slug = slug + '-' + crypto.randomBytes(2).toString('hex');
-  const cat = { id: uid('cat'), name: String(name).trim(), slug, icon: (icon || '📦').slice(0, 4), color: (color || '#8b9bff').slice(0, 9), createdAt: Date.now() };
+  const cat = { id: uid('cat'), name: String(name).trim(), slug, icon: (icon || '📦').slice(0, 4), color: (color || '#8b9bff').slice(0, 9), iconUrl: iconUrl || null, createdAt: Date.now() };
   db.categories.push(cat); scheduleSave(); res.json({ category: cat });
 });
 app.patch('/api/categories/:id', authMiddleware, (req, res) => {
