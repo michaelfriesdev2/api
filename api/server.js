@@ -263,6 +263,20 @@ app.get('/api/files/:id/download', softAuth, viewGuard, (req, res) => {
   const filePath = path.join(UPLOAD_DIR, f.storedPath);
   fs.stat(filePath, (err) => { if (err) return res.status(404).json({ error: 'Plik nie istnieje na dysku.' }); res.download(filePath, f.originalName); });
 });
+
+// view – serwuje plik inline (do podglądu w przeglądarce / miniaturki)
+app.get('/api/files/:id/view', softAuth, viewGuard, (req, res) => {
+  const f = db.files.find(x => x.id === req.params.id);
+  if (!f) return res.status(404).json({ error: 'Nie znaleziono pliku.' });
+  const filePath = path.join(UPLOAD_DIR, f.storedPath);
+  fs.stat(filePath, (err) => {
+    if (err) return res.status(404).json({ error: 'Plik nie istnieje na dysku.' });
+    res.set('Content-Type', f.mimetype || 'application/octet-stream');
+    res.set('Content-Disposition', 'inline; filename="' + encodeURIComponent(f.originalName) + '"');
+    res.set('Cache-Control', 'public, max-age=86400');
+    fs.createReadStream(filePath).pipe(res);
+  });
+});
 app.post('/api/files', authMiddleware, (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) { if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'Plik za duży (max ' + Math.round(MAX_FILE_SIZE / 1048576) + ' MB).' }); return res.status(400).json({ error: err.message || 'Błąd uploadu.' }); }
