@@ -33,6 +33,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 // Panel admina serwowany z tego API – login-gated, dostępny pod ip:PORT
 const ADMIN_DIR = path.join(__dirname, 'admin');
 const FRONTEND_DIR = process.env.FRONTEND_DIR || (fs.existsSync(ADMIN_DIR) ? ADMIN_DIR : '');
+const ICONS_DIR = path.join(__dirname, 'icons');
 
 // --------------------------------------------------------------- utils
 function uid(prefix) {
@@ -69,6 +70,7 @@ async function ensureDirs() {
   await fsp.mkdir(DATA_DIR, { recursive: true });
   await fsp.mkdir(UPLOAD_DIR, { recursive: true });
   await fsp.mkdir(path.join(UPLOAD_DIR, '_tmp'), { recursive: true });
+  await fsp.mkdir(ICONS_DIR, { recursive: true });
 }
 async function loadDb() {
   try { db = JSON.parse(await fsp.readFile(DATA_FILE, 'utf8')); }
@@ -161,7 +163,11 @@ function decorateFile(f, req) {
   return {
     id: f.id, title: f.title, description: f.description, originalName: f.originalName,
     size: f.size, mimetype: f.mimetype, uploadedAt: f.uploadedAt, uploader: f.uploader, category: f.category,
-    categoryName: cat ? cat.name : 'Bez kategorii', categoryIcon: cat ? cat.icon : '📦', categoryColor: cat ? cat.color : '#8c95a8',
+    tags: Array.isArray(f.tags) ? f.tags : [],
+    categoryName: cat ? cat.name : 'Bez kategorii',
+    categoryIcon: cat ? cat.icon : '📦',
+    categoryIconUrl: cat ? (cat.iconUrl || null) : null,
+    categoryColor: cat ? cat.color : '#8c95a8',
     canDelete: !!(req.user && (req.user.role === 'admin' || req.user.username === f.uploader))
   };
 }
@@ -220,10 +226,11 @@ app.post('/api/categories', authMiddleware, (req, res) => {
 app.patch('/api/categories/:id', authMiddleware, (req, res) => {
   const cat = db.categories.find(c => c.id === req.params.id || c.slug === req.params.id);
   if (!cat) return res.status(404).json({ error: 'Nie znaleziono kategorii.' });
-  const { name, icon, color } = req.body || {};
+  const { name, icon, color, iconUrl } = req.body || {};
   if (name) cat.name = String(name).trim();
   if (icon) cat.icon = String(icon).slice(0, 4);
   if (color) cat.color = String(color).slice(0, 9);
+  if (iconUrl !== undefined) cat.iconUrl = iconUrl || null; // null = usuń ikonę SVG
   scheduleSave(); res.json({ category: cat });
 });
 app.delete('/api/categories/:id', authMiddleware, (req, res) => {
@@ -235,12 +242,27 @@ app.delete('/api/categories/:id', authMiddleware, (req, res) => {
 });
 
 // ---- files ----
+app.get('/api/tags', softAuth, viewGuard, (req, res) => {
+  const counts = {};
+  for (const f of db.files) {
+    for (const t of (Array.isArray(f.tags) ? f.tags : [])) {
+      counts[t] = (counts[t] || 0) + 1;
+    }
+  }
+  const tags = Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  res.json({ tags });
+});
+
 app.get('/api/files', softAuth, viewGuard, (req, res) => {
   let files = db.files.slice().sort((a, b) => b.uploadedAt - a.uploadedAt);
-  const { category, q } = req.query;
+  const { category, q, tag } = req.query;
   if (category && category !== 'all') {
     if (category === 'none') files = files.filter(f => !f.category);
     else files = files.filter(f => f.category === category);
+  }
+  if (tag) {
+    const tagLower = String(tag).toLowerCase().trim();
+    files = files.filter(f => Array.isArray(f.tags) && f.tags.includes(tagLower));
   }
   if (q) {
     const t = String(q).toLowerCase();
@@ -293,7 +315,11 @@ app.post('/api/files', authMiddleware, (req, res, next) => {
     const destPath = path.join(destDir, req.file.filename);
     await fsp.rename(req.file.path, destPath);
     const rel = path.relative(UPLOAD_DIR, destPath).replace(/\\/g, '/');
-    const rec = { id: uid('file'), originalName: req.file.originalname, storedName: req.file.filename, storedPath: rel, category: category || '', title: (req.body.title || '').trim() || req.file.originalname, description: (req.body.description || '').trim(), size: req.file.size, mimetype: req.file.mimetype, uploadedAt: Date.now(), uploader: req.user.username };
+    const rawTags = (req.body.tags || '').trim();
+    const tags = rawTags
+      ? rawTags.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0 && t.length <= 32).slice(0, 20)
+      : [];
+    const rec = { id: uid('file'), originalName: req.file.originalname, storedName: req.file.filename, storedPath: rel, category: category || '', title: (req.body.title || '').trim() || req.file.originalname, description: (req.body.description || '').trim(), tags, size: req.file.size, mimetype: req.file.mimetype, uploadedAt: Date.now(), uploader: req.user.username };
     db.files.push(rec); scheduleSave(); res.status(201).json({ file: decorateFile(rec, req) });
   } catch (e) { try { await fsp.unlink(req.file.path); } catch (err) {} res.status(500).json({ error: 'Błąd zapisu pliku: ' + e.message }); }
 });
@@ -313,6 +339,74 @@ app.patch('/api/config', authMiddleware, (req, res) => {
   const { requireAuthToView } = req.body || {};
   if (typeof requireAuthToView === 'boolean') db.config.requireAuthToView = requireAuthToView;
   scheduleSave(); res.json({ config: db.config });
+});
+
+// ---- icons ----
+const iconStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ICONS_DIR),
+  filename: (req, file, cb) => {
+    const base = sanitizeFilename(path.basename(file.originalname, '.svg')) || 'icon';
+    cb(null, uid('ico') + '_' + base + '.svg');
+  }
+});
+const uploadIcon = multer({
+  storage: iconStorage,
+  limits: { fileSize: 512 * 1024 }, // max 512 KB na SVG
+  fileFilter: (req, file, cb) => {
+    const ok = file.mimetype === 'image/svg+xml' || file.originalname.toLowerCase().endsWith('.svg');
+    cb(ok ? null : new Error('Tylko pliki SVG.'), ok);
+  }
+});
+
+// lista ikon
+app.get('/api/icons', softAuth, async (req, res) => {
+  try {
+    const files = await fsp.readdir(ICONS_DIR);
+    const icons = files.filter(f => f.endsWith('.svg')).map(f => ({
+      id: f,
+      name: f.replace(/^ico-[a-z0-9]+-/, '').replace(/\.svg$/, ''),
+      url: '/api/icons/' + encodeURIComponent(f)
+    }));
+    res.json({ icons });
+  } catch (e) { res.json({ icons: [] }); }
+});
+
+// serwuj plik SVG
+app.get('/api/icons/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename); // zapobiegaj path traversal
+  const filePath = path.join(ICONS_DIR, filename);
+  if (!filename.endsWith('.svg')) return res.status(400).json({ error: 'Tylko SVG.' });
+  fs.stat(filePath, (err) => {
+    if (err) return res.status(404).json({ error: 'Nie znaleziono ikony.' });
+    res.set('Content-Type', 'image/svg+xml');
+    res.set('Cache-Control', 'public, max-age=86400');
+    fs.createReadStream(filePath).pipe(res);
+  });
+});
+
+// upload SVG
+app.post('/api/icons', authMiddleware, (req, res) => {
+  uploadIcon.single('file')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Błąd uploadu.' });
+    if (!req.file) return res.status(400).json({ error: 'Brak pliku SVG.' });
+    res.status(201).json({
+      icon: {
+        id: req.file.filename,
+        name: req.file.filename.replace(/^ico-[a-z0-9]+-/, '').replace(/\.svg$/, ''),
+        url: '/api/icons/' + encodeURIComponent(req.file.filename)
+      }
+    });
+  });
+});
+
+// usuń ikonę
+app.delete('/api/icons/:filename', authMiddleware, async (req, res) => {
+  const filename = path.basename(req.params.filename);
+  if (!filename.endsWith('.svg')) return res.status(400).json({ error: 'Tylko SVG.' });
+  try {
+    await fsp.unlink(path.join(ICONS_DIR, filename));
+    res.json({ ok: true });
+  } catch (e) { res.status(404).json({ error: 'Nie znaleziono ikony.' }); }
 });
 
 // 404 API

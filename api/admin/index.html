@@ -43,11 +43,13 @@
     <button class="btn btn-outline-danger" id="btnLogout">Wyloguj</button>
   </div>
 
+  <!-- STATYSTYKI -->
   <div class="window">
     <div class="titlebar"><i></i><i></i><i></i><span>statystyki</span></div>
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
+  <!-- WYŚLIJ PLIK -->
   <div class="window">
     <div class="titlebar"><i></i><i></i><i></i><span>wyślij plik</span></div>
     <div class="panel-body">
@@ -60,11 +62,36 @@
       <div class="field"><label>Kategoria</label><select id="upCat"></select></div>
       <div class="field"><label>Tytuł</label><input id="upTitle" type="text" placeholder="np. Rozkaz 01/2025"></div>
       <div class="field"><label>Opis (opcjonalnie)</label><textarea id="upDesc" placeholder="Krótki opis pliku"></textarea></div>
+      <div class="field">
+        <label>Tagi (oddziel przecinkami)</label>
+        <input id="upTags" type="text" placeholder="np. livery, czerwony, hetzner">
+        <div class="hint">Tagi ułatwiają filtrowanie plików na stronie publicznej.</div>
+      </div>
       <div id="upError"></div>
       <button class="btn btn-primary btn-full" id="upSubmit">Wyślij plik</button>
     </div>
   </div>
 
+  <!-- IKONY KATEGORII (SVG) -->
+  <div class="window">
+    <div class="titlebar"><i></i><i></i><i></i><span>ikony kategorii (SVG)</span></div>
+    <div class="panel-body">
+      <div class="icons-grid" id="iconsGrid"></div>
+      <div class="add-icon">
+        <div class="add-label">Wgraj ikonę SVG</div>
+        <div id="iconUpError"></div>
+        <div class="dropzone" id="iconDropzone">
+          <span class="dz-ico">🎨</span>
+          Przeciągnij plik SVG lub kliknij
+          <span class="dz-name" id="iconDzName"></span>
+          <input type="file" id="iconFileInput" accept=".svg,image/svg+xml" hidden>
+        </div>
+        <button class="btn btn-primary btn-full" id="iconUpSubmit" style="margin-top:10px">Wgraj ikonę</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KATEGORIE -->
   <div class="window">
     <div class="titlebar"><i></i><i></i><i></i><span>kategorie</span></div>
     <div class="panel-body">
@@ -72,16 +99,25 @@
       <div class="add-cat">
         <div class="add-label">Dodaj kategorię</div>
         <div id="catAddError"></div>
+        <div class="field">
+          <label>Ikona SVG (opcjonalnie)</label>
+          <div class="icon-picker" id="catIconPicker">
+            <div class="icon-picker-empty">Brak ikon – wgraj SVG powyżej</div>
+          </div>
+          <div class="hint" style="margin-top:6px">Lub wpisz emoji jako fallback:</div>
+        </div>
         <div class="field-row">
           <div class="field"><label>Nazwa</label><input id="catName" type="text" placeholder="np. Ratownictwo wodne"></div>
-          <div class="field"><label>Ikona (emoji)</label><input id="catIcon" type="text" maxlength="4" value="📦"></div>
+          <div class="field"><label>Emoji (fallback)</label><input id="catIcon" type="text" maxlength="4" value="📦"></div>
         </div>
         <div class="field"><label>Kolor</label><input id="catColor" type="text" maxlength="9" value="#8b9bff" placeholder="#8b9bff"></div>
+        <input type="hidden" id="catIconUrl" value="">
         <button class="btn btn-primary btn-full" id="catAdd">Dodaj kategorię</button>
       </div>
     </div>
   </div>
 
+  <!-- PLIKI -->
   <div class="window">
     <div class="titlebar"><i></i><i></i><i></i><span>pliki <span class="muted" id="filesCount"></span></span></div>
     <div class="controls">
@@ -97,6 +133,7 @@
     <div class="empty" id="emptyState" hidden></div>
   </div>
 
+  <!-- USTAWIENIA -->
   <div class="window">
     <div class="titlebar"><i></i><i></i><i></i><span>ustawienia</span></div>
     <div class="panel-body">
