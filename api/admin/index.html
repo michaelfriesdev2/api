@@ -53,12 +53,12 @@
   <div class="window">
     <div class="titlebar"><i></i><i></i><i></i><span>wyślij plik</span></div>
     <div class="panel-body">
-      <div class="dropzone" id="dropzone">
+      <label class="dropzone" id="dropzone" for="fileInput">
         <span class="dz-ico">⬆️</span>
         Przeciągnij plik tutaj lub kliknij, aby wybrać
         <span class="dz-name" id="dzName"></span>
         <input type="file" id="fileInput" hidden>
-      </div>
+      </label>
       <div class="field"><label>Kategoria</label><select id="upCat"></select></div>
       <div class="field"><label>Tytuł</label><input id="upTitle" type="text" placeholder="np. Rozkaz 01/2025"></div>
       <div class="field"><label>Opis (opcjonalnie)</label><textarea id="upDesc" placeholder="Krótki opis pliku"></textarea></div>
@@ -80,12 +80,12 @@
       <div class="add-icon">
         <div class="add-label">Wgraj ikonę SVG</div>
         <div id="iconUpError"></div>
-        <div class="dropzone" id="iconDropzone">
+        <label class="dropzone" id="iconDropzone" for="iconFileInput">
           <span class="dz-ico">🎨</span>
           Przeciągnij plik SVG lub kliknij
           <span class="dz-name" id="iconDzName"></span>
           <input type="file" id="iconFileInput" accept=".svg,image/svg+xml" hidden>
-        </div>
+        </label>
         <button class="btn btn-primary btn-full" id="iconUpSubmit" style="margin-top:10px">Wgraj ikonę</button>
       </div>
     </div>

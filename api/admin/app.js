@@ -359,7 +359,6 @@ let uploadFile = null;
 function bindUpload() {
   // plik główny
   const dz = el('dropzone'), input = el('fileInput');
-  dz.addEventListener('click', () => input.click());
   input.addEventListener('change', () => setFile(input.files[0]));
   ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
   ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
@@ -368,7 +367,6 @@ function bindUpload() {
 
   // ikona SVG
   const idz = el('iconDropzone'), iinput = el('iconFileInput');
-  idz.addEventListener('click', () => iinput.click());
   iinput.addEventListener('change', () => setIconFile(iinput.files[0]));
   ['dragenter', 'dragover'].forEach(ev => idz.addEventListener(ev, e => { e.preventDefault(); idz.classList.add('drag'); }));
   ['dragleave', 'drop'].forEach(ev => idz.addEventListener(ev, e => { e.preventDefault(); idz.classList.remove('drag'); }));
