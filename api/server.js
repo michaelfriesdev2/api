@@ -283,7 +283,19 @@ app.get('/api/files/:id/download', softAuth, viewGuard, (req, res) => {
   const f = db.files.find(x => x.id === req.params.id);
   if (!f) return res.status(404).json({ error: 'Nie znaleziono pliku.' });
   const filePath = path.join(UPLOAD_DIR, f.storedPath);
-  fs.stat(filePath, (err) => { if (err) return res.status(404).json({ error: 'Plik nie istnieje na dysku.' }); res.download(filePath, f.originalName); });
+  fs.stat(filePath, (err) => {
+    if (err) return res.status(404).json({ error: 'Plik nie istnieje na dysku.' });
+    // licznik pobrań
+    const today = new Date().toISOString().slice(0, 10);
+    if (!db.downloads) db.downloads = { total: 0, daily: {} };
+    db.downloads.total = (db.downloads.total || 0) + 1;
+    db.downloads.daily[today] = (db.downloads.daily[today] || 0) + 1;
+    // ogranicz historię do 90 dni
+    const days = Object.keys(db.downloads.daily).sort();
+    if (days.length > 90) days.slice(0, days.length - 90).forEach(d => delete db.downloads.daily[d]);
+    scheduleSave();
+    res.download(filePath, f.originalName);
+  });
 });
 
 // view – serwuje plik inline (do podglądu w przeglądarce / miniaturki)
@@ -333,7 +345,17 @@ app.delete('/api/files/:id', authMiddleware, async (req, res) => {
 
 // ---- stats / config ----
 app.get('/api/stats', softAuth, viewGuard, (req, res) => {
-  res.json({ files: db.files.length, categories: db.categories.length, totalSize: db.files.reduce((s, f) => s + (f.size || 0), 0), requireAuthToView: !!db.config.requireAuthToView, loggedIn: !!req.user });
+  const today = new Date().toISOString().slice(0, 10);
+  const dl = db.downloads || { total: 0, daily: {} };
+  res.json({
+    files: db.files.length,
+    categories: db.categories.length,
+    totalSize: db.files.reduce((s, f) => s + (f.size || 0), 0),
+    requireAuthToView: !!db.config.requireAuthToView,
+    loggedIn: !!req.user,
+    downloadsTotal: dl.total || 0,
+    downloadsToday: dl.daily[today] || 0
+  });
 });
 app.patch('/api/config', authMiddleware, (req, res) => {
   const { requireAuthToView } = req.body || {};

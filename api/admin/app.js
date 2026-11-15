@@ -155,7 +155,9 @@ function renderStats(s) {
   el('statsGrid').innerHTML =
     stat('📁', s.files, 'Plików') +
     stat('🗂️', s.categories, 'Kategorii') +
-    stat('💾', fmtSize(s.totalSize), 'Rozmiar');
+    stat('💾', fmtSize(s.totalSize), 'Rozmiar') +
+    stat('⬇️', s.downloadsTotal || 0, 'Pobrań łącznie') +
+    stat('📅', s.downloadsToday || 0, 'Pobrań dziś');
   el('cfgRequireView').checked = !!s.requireAuthToView;
 }
 function stat(ico, v, l) {
