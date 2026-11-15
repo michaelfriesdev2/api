@@ -343,6 +343,30 @@ app.delete('/api/files/:id', authMiddleware, async (req, res) => {
   db.files.splice(idx, 1); scheduleSave(); res.json({ ok: true });
 });
 
+// ---- counters (publiczne, bez auth) ----
+app.get('/api/counters/:key', (req, res) => {
+  const key = req.params.key;
+  if (!db.counters) db.counters = {};
+  const c = db.counters[key] || { total: 0, daily: {} };
+  const today = new Date().toISOString().slice(0, 10);
+  res.json({ key, total: c.total || 0, today: c.daily[today] || 0 });
+});
+
+app.post('/api/counters/:key', (req, res) => {
+  const key = req.params.key;
+  if (!/^[a-z0-9_-]{1,40}$/.test(key)) return res.status(400).json({ error: 'Nieprawidłowy klucz.' });
+  if (!db.counters) db.counters = {};
+  if (!db.counters[key]) db.counters[key] = { total: 0, daily: {} };
+  const today = new Date().toISOString().slice(0, 10);
+  db.counters[key].total = (db.counters[key].total || 0) + 1;
+  db.counters[key].daily[today] = (db.counters[key].daily[today] || 0) + 1;
+  // ogranicz historię do 90 dni
+  const days = Object.keys(db.counters[key].daily).sort();
+  if (days.length > 90) days.slice(0, days.length - 90).forEach(d => delete db.counters[key].daily[d]);
+  scheduleSave();
+  res.json({ key, total: db.counters[key].total, today: db.counters[key].daily[today] });
+});
+
 // ---- stats / config ----
 app.get('/api/stats', softAuth, viewGuard, (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
